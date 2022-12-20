@@ -1,0 +1,196 @@
+#include <IRremote.h> // include the IRremote library
+#define RECEIVER_PIN 2 // define the IR receiver pin
+
+#include <LiquidCrystal_I2C.h>
+
+IRrecv receiver(RECEIVER_PIN); // create a receiver object of the IRrecv class
+decode_results results; // create a results object of the decode_results class
+
+LiquidCrystal_I2C lcd(0x27, 20, 4); // adresa lcd 0x27
+
+const int tlacitko = 35;
+int stav_tlacitka = 0;
+int menu_krok = 0;
+int pred_stav_tlacitka = 0;
+
+const int tlacitko2 = 5;
+int stav_tlacitka2 = 0;
+int pred_stav_tlacitka2 = 0;
+
+
+void setup() {
+  Serial.begin(9600); // begin serial communication with a baud rate of 9600
+  receiver.enableIRIn(); // enable the receiver
+  receiver.blink13(true); // enable blinking of the built-in LED when an IR signal is received
+  
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("start");
+  
+  pinMode(tlacitko, INPUT);
+  pinMode(tlacitko2, INPUT);
+
+
+  pinMode(7, OUTPUT); 
+  pinMode(8, OUTPUT); 
+  pinMode(9, OUTPUT); 
+  pinMode(10, OUTPUT); 
+
+  pinMode(30, OUTPUT); //cervena
+  pinMode(31, OUTPUT);
+  pinMode(32, OUTPUT);
+  pinMode(33, OUTPUT);
+  delay(1000);
+  lcd.clear();
+}
+
+       
+    void tlacitko_jeden_krok() {
+
+    stav_tlacitka = digitalRead(tlacitko);
+    if (stav_tlacitka == HIGH) {
+      menu_krok ++;
+      if (menu_krok == 1) {
+      Serial.print("menu krok:");
+      Serial.print(menu_krok);
+      
+
+      stav_tlacitka2 = digitalRead(tlacitko2);
+        if (stav_tlacitka2 == HIGH) {
+          menu_krok --;
+          Serial.print("menu krok spet:");
+            Serial.print(menu_krok);
+          }
+        }
+      }
+    }
+      
+       void test() {
+
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("TEST TEST TEST");
+        lcd.setCursor(0,1);
+        lcd.print("TEST TEST TEST");
+        lcd.setCursor(0,2);
+        lcd.print("TEST TEST TEST");
+        lcd.setCursor(0,3);
+        lcd.print("TEST TEST TEST");
+        tlacitko_jeden_krok();
+
+       }
+
+       void test2() {
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("TEST2 TEST2 TEST2");
+        lcd.setCursor(0,1);
+        lcd.print("TEST2 TEST2 TEST2");
+        lcd.setCursor(0,2);
+        lcd.print("TEST2 TEST2 TEST2");
+        lcd.setCursor(0,3);
+        lcd.print("TEST2 TEST2 TEST2");
+       
+        menu_krok --;
+        tlacitko_jeden_krok();
+
+       }
+       
+void loop() {
+
+tlacitko_jeden_krok();
+if (menu_krok == 0) {
+  test();
+}
+if (menu_krok == 1) {
+  test2();
+}
+
+  if (receiver.decode(&results)) { // decode the received signal and store it in results
+    Serial.println(results.value, HEX); // print the values in the Serial Monitor
+    receiver.resume(); // reset the receiver for the next code
+  }
+    if (results.value == 0x1041) {
+      digitalWrite(7, HIGH);
+      lcd.setCursor(0,0);
+      lcd.print("rele_1 zapnute");
+     
+      }
+    if (results.value == 0x1841){
+       digitalWrite(7, LOW);
+       lcd.setCursor(0,0);
+       lcd.print("rele_1 vypnute");
+     }
+     
+    if (results.value == 0x1042) {
+      digitalWrite(8, HIGH);
+      lcd.setCursor(0,1);
+      lcd.print("rele_2 zapnute");
+      }
+    if (results.value == 0x1842){
+       digitalWrite(8, LOW);
+       lcd.setCursor(0,1);
+       lcd.print("rele_2 vypnute");
+     }
+     
+     if (results.value == 0x1043) {
+      digitalWrite(9, HIGH);
+      lcd.setCursor(0,2);
+      lcd.print("rele_3 zapnute");
+      }
+    if (results.value == 0x1843){
+       digitalWrite(9, LOW);
+       lcd.setCursor(0,2);
+       lcd.print("rele_3 vypnute");
+     }
+     if (results.value == 0x1044) {
+      digitalWrite(10, HIGH);
+      lcd.setCursor(0,3);
+      lcd.print("rele_4 zapnute");
+      }
+      
+    if (results.value == 0x1844){
+       digitalWrite(10, LOW);
+       lcd.setCursor(0,3);
+       lcd.print("rele_4 vypnute");
+     }
+    if (results.value == 0x1077) {
+      digitalWrite(32, HIGH);
+      lcd.setCursor(0,0);
+      lcd.print("cervena LED vypnuta");
+      }
+      
+    if (results.value == 0x1877){
+       digitalWrite(32, LOW);
+       lcd.setCursor(0,0);
+       lcd.print("cervena LED zapnuta");
+     }
+     if (results.value == 0x1076) {
+      digitalWrite(31, HIGH);
+      lcd.setCursor(0,1);
+       lcd.print("zelena LED vypnuta");
+      }
+    if (results.value == 0x1876){
+       digitalWrite(31, LOW);
+       lcd.setCursor(0,1);
+       lcd.print("zelena LED zapnuta");
+     }
+     
+     if (results.value == 0x1074) {
+      digitalWrite(30, LOW);
+      lcd.setCursor(0,2);
+       lcd.print("modra LED zapnuta");
+      }
+    if (results.value == 0x1874) {
+       digitalWrite(30, HIGH);
+       lcd.setCursor(0,2);
+       lcd.print("modra LED vypnuta");
+    }
+    tlacitko_jeden_krok;
+    }
+
+    
+
+        
