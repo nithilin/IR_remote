@@ -1,0 +1,263 @@
+#include <IRremote.h> // include the IRremote library
+#define RECEIVER_PIN 2 // define the IR receiver pin
+#include <dht.h>
+#include <LiquidCrystal_I2C.h>
+
+IRrecv receiver(RECEIVER_PIN); // create a receiver object of the IRrecv class
+decode_results results; // create a results object of the decode_results class
+
+LiquidCrystal_I2C lcd(0x27, 20, 4); // adresa lcd 0x27
+
+
+int menu_krok = 0;
+
+#define CLK 44
+#define DT 42
+#define SW 40
+#define dht_apin 50
+dht DHT;
+
+const int beep = 14; 
+
+int counter = 0;
+int currentStateCLK;
+int lastStateCLK;
+String currentDir ="";
+unsigned long lastButtonPress = 0;
+  
+void setup() {
+
+  Serial.println("DHT11 Humidity & temperature Sensor\n\n");
+
+  Serial.begin(9600); // begin serial communication with a baud rate of 9600
+  receiver.enableIRIn(); // enable the receiver
+  receiver.blink13(true); // enable blinking of the built-in LED when an IR signal is received
+  
+  pinMode(CLK,INPUT);
+  pinMode(DT,INPUT);
+  pinMode(SW, INPUT_PULLUP);
+  lastStateCLK = digitalRead(CLK);
+
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.setCursor(7,0);
+  lcd.print("start");
+
+  pinMode(14, OUTPUT);
+  pinMode(7, OUTPUT); 
+  pinMode(8, OUTPUT); 
+  pinMode(9, OUTPUT); 
+  pinMode(10, OUTPUT); 
+
+  pinMode(30, OUTPUT); //cervena
+  pinMode(31, OUTPUT);
+  pinMode(32, OUTPUT);
+  pinMode(33, OUTPUT);
+  delay(2000);
+  lcd.clear();
+}
+
+void enkoder() {
+// Read the current state of CLK
+  currentStateCLK = digitalRead(CLK);
+
+  // If last and current state of CLK are different, then pulse occurred
+  // React to only 1 state change to avoid double count
+  if (currentStateCLK != lastStateCLK  && currentStateCLK == 1){
+
+    // If the DT state is different than the CLK state then
+    // the encoder is rotating CCW so decrement
+    if (digitalRead(DT) != currentStateCLK) {
+      counter --;
+      currentDir ="LAVO"; //otacanie proti smera hodin lavo --
+    } else {
+      // Encoder is rotating CW so increment
+      counter ++;
+      currentDir ="PRAVO"; //otacanie smere hodin pravo ++
+
+    }
+
+    Serial.print("Smer Otacania: ");
+    Serial.print(currentDir);
+    Serial.print(" | Pocitadlo: ");
+    Serial.println(counter);
+    
+  }
+
+  // Remember last CLK state
+  lastStateCLK = currentStateCLK;
+
+  // Read the button state
+  int btnState = digitalRead(SW);
+
+  //If we detect LOW signal, button is pressed
+  if (btnState == LOW) {
+    //if 50ms have passed since last LOW pulse, it means that the
+    //button has been pressed, released and pressed again
+    if (millis() - lastButtonPress > 50) {
+      Serial.println("Tlacitko Stlacene!");
+      lcd.clear();
+    }
+
+    // Remember last button press event
+    lastButtonPress = millis();
+  }
+  // Put in a slight delay to help debounce the reading
+  delay(1);
+}
+  
+
+void menu1() {
+lcd.setCursor(0,0);
+lcd.print("DHT 1");
+enkoder();
+DHT11();
+}
+
+
+void menu2() {
+enkoder();
+lcd.setCursor(0,0);
+lcd.print("menu 2");
+}
+
+void menu3() {
+  enkoder();
+lcd.setCursor(0,0);
+lcd.print("menu 3");
+enkoder();
+}
+
+void menu4() {
+lcd.setCursor(0,0);
+lcd.print("menu 4");
+enkoder();
+}
+
+void menu() {
+enkoder();
+  
+  if (counter == 1) {
+    menu1();
+  }
+  if (counter == 2) {
+    menu2();
+  }
+  if (counter == 3) {
+    menu3();
+  }  
+  if (counter == 4) {
+    menu4();
+  } 
+  
+}
+
+void DHT11(){
+
+DHT.read11(dht_apin);
+
+  counter++;
+  lcd.clear();
+  lcd.setCursor(6,0);
+  lcd.print("Teplomer");
+  lcd.setCursor(19,0);
+  lcd.print("1");
+  lcd.setCursor(0,1);
+  lcd.print("Teplota=");
+  lcd.print(DHT.temperature); 
+  lcd.print("C");
+  delay(10000);
+  enkoder();
+  lcd.clear();
+}                   
+       
+void loop() {
+
+  if (receiver.decode(&results)) { // decode the received signal and store it in results
+    Serial.println(results.value, HEX); // print the values in the Serial Monitor
+    receiver.resume(); // reset the receiver for the next code
+  }
+
+
+  enkoder();
+  menu();
+
+    if (results.value == 0x1041) {
+      digitalWrite(7, HIGH);
+      lcd.setCursor(0,1);
+      lcd.print("R1 ON ");
+     
+      }
+    if (results.value == 0x1841){
+       digitalWrite(7, LOW);
+       lcd.setCursor(0,1);
+       lcd.print("R1 OFF");
+     }
+     
+    if (results.value == 0x1042) {
+      digitalWrite(8, HIGH);
+      lcd.setCursor(7,1);
+      lcd.print("R2 ON ");
+      }
+    if (results.value == 0x1842){
+       digitalWrite(8, LOW);
+       lcd.setCursor(7,1);
+       lcd.print("R2 OFF");
+     }
+     
+     if (results.value == 0x1043) {
+      digitalWrite(9, HIGH);
+      lcd.setCursor(0,2);
+      lcd.print("R3 ON ");
+      }
+    if (results.value == 0x1843){
+       digitalWrite(9, LOW);
+       lcd.setCursor(0,2);
+       lcd.print("R3 OFF");
+     }
+     if (results.value == 0x1044) {
+      digitalWrite(10, HIGH);
+      lcd.setCursor(7,3);
+      lcd.print("R4 ON ");
+      }
+      
+    if (results.value == 0x1844){
+       digitalWrite(10, LOW);
+       lcd.setCursor(7,3);
+       lcd.print("R4 OFF");
+     }
+    if (results.value == 0x1077) {
+      digitalWrite(32, HIGH);
+      lcd.setCursor(0,0);
+      lcd.print("cervena LED vypnuta");
+      }
+      
+    if (results.value == 0x1877){
+       digitalWrite(32, LOW);
+       lcd.setCursor(0,0);
+       lcd.print("cervena LED zapnuta");
+     }
+     if (results.value == 0x1076) {
+      digitalWrite(31, HIGH);
+      lcd.setCursor(0,1);
+       lcd.print("zelena LED vypnuta");
+      }
+    if (results.value == 0x1876){
+       digitalWrite(31, LOW);
+       lcd.setCursor(0,1);
+       lcd.print("zelena LED zapnuta");
+     }
+     
+     if (results.value == 0x1074) {
+      digitalWrite(30, LOW);
+      lcd.setCursor(0,2);
+       lcd.print("modra LED zapnuta");
+      }
+    if (results.value == 0x1874) {
+       digitalWrite(30, HIGH);
+       lcd.setCursor(0,2);
+       lcd.print("modra LED vypnuta");
+    }
+    enkoder();
+    }
